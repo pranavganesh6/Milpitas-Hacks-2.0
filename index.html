@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Haven — Assist & Protect</title>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome -->
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --primary: #1565c0;
+      --danger: #e53935;
+      /* Dark mode defaults */
+      --bg: #121212;
+      --card: #1e1e1e;
+      --text: #e0e0e0;
+      --accent: #263238;
+      --radius: 8px;
+      --shadow: rgba(0, 0, 0, 0.5);
+    }
+    /* Light mode overrides */
+    body.light-mode {
+      --bg: #f5f6fa;
+      --card: #ffffff;
+      --text: #2c3e50;
+      --accent: #e1f5fe;
+      --shadow: rgba(0, 0, 0, 0.1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      transition: background 0.3s, color 0.3s;
+    }
+    /* Theme toggle fixed in top-right */
+    #themeToggle {
+      position: fixed;
+      right: 175px;
+      background: none;
+      border: none;
+      font-size: 2rem;
+      cursor: pointer;
+      color: var(--text);
+      z-index: 1000;
+    }
+    header { text-align: center; margin-bottom: 20px; width: 100%; max-width: 700px; }
+    header h1 {
+      font-size: 2.2rem;
+    }
+    header #status {
+      margin-top: 6px;
+      font-weight: 600;
+    }
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: 0 4px 12px var(--shadow);
+      padding: 20px;
+      width: 100%;
+      max-width: 700px;
+      margin-bottom: 20px;
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+    .card h2 {
+      font-size: 1.4rem;
+      margin-bottom: 12px;
+      color: var(--primary);
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #555;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      background: var(--card);
+      color: var(--text);
+      transition: background 0.3s, color 0.3s;
+    }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.2);
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+      background: var(--primary);
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    button:hover { background: #0d47a1; }
+    .danger-button { background: var(--danger); }
+    .danger-button:hover { background: #b71c1c; }
+    #clearBtn { background: #6c757d; }
+    #chatResponse {
+      background: var(--accent);
+      border-radius: var(--radius);
+      padding: 15px;
+      min-height: 80px;
+      margin-top: 10px;
+      white-space: pre-line;
+      transition: background 0.3s;
+    }
+    @media (max-width: 600px) {
+      header h1 { font-size: 1.8rem; }
+      .card { padding: 15px; }
+      #themeToggle { font-size: 1.5rem; top: 10px; right: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <button id="themeToggle" title="Toggle theme">🌞</button>
+  <header>
+    <h1>Haven</h1>
+    <div id="status">Locating you...</div>
+  </header>
+
+  <div class="card" id="chatbot-section">
+    <h2>Chat with Haven</h2>
+    <input type="text" id="userMessage" placeholder="How can we support you?" />
+    <button id="sendBtn">Send</button>
+    <button id="clearBtn">Clear Chat</button>
+    <div id="chatResponse">Haven will respond here.</div>
+  </div>
+
+  <div class="card" id="tools-section">
+    <h2>Emergency Tools</h2>
+    <button class="escape-button" id="escapeBtn">Escape & Alert Authorities</button>
+    <button class="danger-button" id="panicBtn">Panic Button</button>
+  </div>
+
+  <script>
+    // Theme toggle (sun/moon only)
+    const themeToggle = document.getElementById('themeToggle');
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    if (savedTheme === 'light') document.body.classList.add('light-mode');
+    updateToggleIcon();
+    themeToggle.addEventListener('click', () => {
+      document.body.classList.toggle('light-mode');
+      const mode = document.body.classList.contains('light-mode') ? 'light' : 'dark';
+      localStorage.setItem('theme', mode);
+      updateToggleIcon();
+    });
+    function updateToggleIcon() {
+      themeToggle.textContent = document.body.classList.contains('light-mode') ? '🌜' : '🌞';
+    }
+
+    let userLocation = null;
+    const chatHistory = [
+      { role: "system", content: "You are a calm, safe assistant providing step-by-step help for domestic abuse situations." }
+    ];
+    const maxMessages = 5;
+
+    async function requestLocation() {
+      const status = document.getElementById("status");
+      status.textContent = "Locating you...";
+      navigator.geolocation.getCurrentPosition(async pos => {
+        const lat = pos.coords.latitude.toFixed(5);
+        const lon = pos.coords.longitude.toFixed(5);
+        userLocation = { latitude: lat, longitude: lon };
+        try {
+          const res = await fetch("/api/location-info", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: userLocation }) });
+          const { city, country } = await res.json();
+          status.textContent = city && country ? `Location: ${city}, ${country}` : `Location: ${lat}, ${lon}`;
+        } catch {
+          status.textContent = `Location: ${lat}, ${lon}`;
+        }
+      }, () => {
+        status.textContent = "Unable to find location. Please try again.";
+        setTimeout(requestLocation, 3000);
+      }, { enableHighAccuracy: true, timeout: 5000 });
+    }
+
+    async function sendToChatbot() {
+      const input = document.getElementById("userMessage");
+      const respBox = document.getElementById("chatResponse");
+      const msg = input.value.trim();
+      if (!msg || !userLocation) return;
+      chatHistory.push({ role: "user", content: msg });
+      if (chatHistory.length > maxMessages + 1) { chatHistory.splice(1); respBox.textContent = ""; }
+      respBox.textContent = "Thinking...";
+      try {
+        const res = await fetch("/api/chat", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: chatHistory, location: userLocation }) });
+        const data = await res.json();
+        const reply = data.reply || "No response.";
+        chatHistory.push({ role: "assistant", content: reply });
+        respBox.textContent = chatHistory.slice(1).map(m => (m.role === "user" ? "👤 You" : "🤖 Haven") + ": " + m.content).join("\n\n");
+        input.value = "";
+      } catch {
+        respBox.textContent = "Chatbot not available.";
+      }
+    }
+
+    function clearChat() {
+      chatHistory.splice(1);
+      document.getElementById("chatResponse").textContent = "";
+    }
+
+    async function handleEscape() {
+      if (userLocation) {
+        try {
+          const res = await fetch("/api/domestic-emergency", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: userLocation }) });
+          const data = await res.json();
+          alert(`Emergency number: ${data.number}. This page will close now.`);
+        } catch {
+          alert("Calling default: 112. This page will close now.");
+        }
+      }
+      window.open('', '_self');
+      window.close();
+    }
+
+    function handlePanic() {
+      if (userLocation) fetch("/api/panic", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'panic', location: userLocation, time: new Date().toISOString() }) });
+      alert("Panic! Authorities alerted.");
+    }
+
+    // Enter to send
+    document.getElementById("userMessage").addEventListener("keyup", e => { if (e.key === 'Enter') sendToChatbot(); });
+    document.getElementById("sendBtn").addEventListener("click", sendToChatbot);
+    document.getElementById("clearBtn").addEventListener("click", clearChat);
+    document.getElementById("escapeBtn").addEventListener("click", handleEscape);
+    document.getElementById("panicBtn").addEventListener("click", handlePanic);
+
+    window.onload = requestLocation;
+  </script>
+</body>
+</html>
