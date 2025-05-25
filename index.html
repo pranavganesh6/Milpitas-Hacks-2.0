@@ -125,12 +125,12 @@
   <button id="themeToggle" title="Toggle theme">🌞</button>
   <header>
     <h1>Haven</h1>
-    <div id="status">Locating you...</div>
+    <div id="status">Finding location...</div>
   </header>
 
   <div class="card" id="chatbot-section">
     <h2>Chat with Haven</h2>
-    <input type="text" id="userMessage" placeholder="How can we support you?" />
+    <input type="text" id="userMessage" placeholder="What's your emergency?" />
     <button id="sendBtn">Send</button>
     <button id="clearBtn">Clear Chat</button>
     <div id="chatResponse">Haven will respond here.</div>
@@ -155,7 +155,7 @@
       updateToggleIcon();
     });
     function updateToggleIcon() {
-      themeToggle.textContent = document.body.classList.contains('light-mode') ? '🌜' : '🌞';
+      themeToggle.textContent = document.body.classList.contains('light-mode') ? '🌞' : '🌜';
     }
 
     let userLocation = null;
@@ -224,8 +224,32 @@
     }
 
     function handlePanic() {
-      if (userLocation) fetch("/api/panic", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'panic', location: userLocation, time: new Date().toISOString() }) });
-      alert("Panic! Authorities alerted.");
+      if (userLocation) {
+        console.log("PANIC ALERT TRIGGERED");
+        console.log("User Location:", userLocation);
+        console.log("Time:", new Date().toISOString());
+
+        fetch("/api/panic", {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'panic',
+            location: userLocation,
+            time: new Date().toISOString()
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          console.log("Server response:", data);
+          alert("Authorities have been alerted and will be on their way.");
+        })
+        .catch(error => {
+          console.error("Error sending panic alert:", error);
+          alert("Failed to alert authorities.");
+        });
+      } else {
+        alert("User location is not available.");
+      }
     }
 
     // Enter to send
