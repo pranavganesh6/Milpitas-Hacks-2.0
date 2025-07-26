@@ -12,7 +12,7 @@ CORS(app)
 def home():
     return render_template("index.html")
 
-TOGETHER_API_KEY = "7f38cc73573888c901dffa1656629c852c38e0bc711a4386a55df5ad76b05281"
+TOGETHER_API_KEY = "INSERT_YOUR_API_KEY_HERE"
 client = Together(api_key=TOGETHER_API_KEY)
 
 # ROUTE 1: Chatbot Endpoint
